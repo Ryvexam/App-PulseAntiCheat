@@ -1,0 +1,5 @@
+FROM dxflrs/garage:v1.1.0 AS garage
+FROM node:22-alpine
+COPY --from=garage /garage /garage
+COPY scripts/init-garage.sh /init-garage.sh
+ENTRYPOINT ["/bin/sh", "/init-garage.sh"]

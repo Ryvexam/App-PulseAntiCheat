@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pulse Audit</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Pulse Hesias</p>
+      <h1>Audit surveillant</h1>
+    </div>
+    <div class="auth">
+      <input id="token" type="password" placeholder="Dashboard token">
+      <button id="save-token">Connecter</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="metrics" id="metrics"></section>
+
+    <section class="workspace">
+      <aside class="sessions">
+        <div class="section-head">
+          <h2>Sessions</h2>
+          <button id="refresh">Actualiser</button>
+        </div>
+        <div id="session-list" class="session-list"></div>
+      </aside>
+
+      <section class="detail">
+        <div id="detail-empty" class="empty">Sélectionnez une session pour inspecter les preuves.</div>
+        <div id="detail-content" hidden>
+          <div class="detail-head">
+            <div>
+              <p class="eyebrow" id="detail-exam"></p>
+              <h2 id="detail-student"></h2>
+            </div>
+            <div class="detail-actions">
+              <button id="ai-agent">Agent IA</button>
+              <button id="export-csv">Exporter CSV</button>
+            </div>
+          </div>
+
+          <section class="intelligence">
+            <div>
+              <p class="eyebrow">Analyse comportementale</p>
+              <h3 id="analysis-verdict"></h3>
+            </div>
+            <div id="analysis-findings" class="findings"></div>
+          </section>
+
+          <section id="ai-panel" class="ai-panel" hidden>
+            <div class="section-head">
+              <h3>Analyse Agent IA</h3>
+              <span id="ai-status"></span>
+            </div>
+            <div id="ai-result"></div>
+          </section>
+
+          <div class="detail-grid">
+            <section>
+              <h3>Timeline</h3>
+              <div id="timeline" class="timeline"></div>
+            </section>
+            <section>
+              <h3>Preuves</h3>
+              <div id="evidence" class="evidence"></div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

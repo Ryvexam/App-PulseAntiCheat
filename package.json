@@ -1,0 +1,40 @@
+{
+  "name": "pulse-hesias-api",
+  "version": "1.0.0",
+  "description": "Anti-cheat exam audit backend for the Pulse Hesias Chrome extension (Express + PostgreSQL + Garage/S3).",
+  "main": "server.js",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "migrate": "node src/migrate.js",
+    "db:reset": "node src/reset-db.js",
+    "lint": "npm run lint:syntax && npm run lint:style",
+    "lint:syntax": "node scripts/verify-extension.js",
+    "lint:style": "node scripts/lint-extension.js",
+    "test": "node --test test/scoring.test.js test/analysis.test.js test/security.test.js",
+    "test:integration": "node --test test/integration.test.js",
+    "build:wasm": "asc assembly/index.ts --target release",
+    "build:ext": "npm run build:wasm && node scripts/build-extension.js",
+    "pack:ext": "node scripts/pack-crx.js",
+    "release:ext": "npm run build:ext && npm run pack:ext"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.726.1",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.13.1",
+    "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "assemblyscript": "^0.27.37",
+    "crx3": "^2.0.0",
+    "esbuild": "^0.28.0",
+    "javascript-obfuscator": "^5.4.3"
+  }
+}

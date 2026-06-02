@@ -1,0 +1,72 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      garage-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./tmp:/app/tmp
+      - ./releases:/app/releases:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pulse
+      POSTGRES_PASSWORD: pulse
+      POSTGRES_DB: pulse
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pulse -d pulse"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  garage:
+    image: dxflrs/garage:v1.1.0
+    command: /garage server
+    ports:
+      - "3900:3900"
+      - "3901:3901"
+      - "3902:3902"
+      - "3903:3903"
+    volumes:
+      - garage-data:/var/lib/garage
+      - ./garage.toml:/etc/garage.toml:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  garage-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.garage-init
+    env_file:
+      - .env
+    depends_on:
+      garage:
+        condition: service_healthy
+    volumes:
+      - garage-data:/var/lib/garage
+      - ./garage.toml:/etc/garage.toml:ro
+
+volumes:
+  postgres-data:
+  garage-data:

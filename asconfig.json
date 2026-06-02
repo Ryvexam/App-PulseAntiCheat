@@ -1,0 +1,15 @@
+{
+  "targets": {
+    "release": {
+      "outFile": "assembly/build/core.wasm",
+      "optimizeLevel": 3,
+      "shrinkLevel": 2,
+      "converge": true,
+      "noAssert": true,
+      "runtime": "minimal"
+    }
+  },
+  "options": {
+    "bindings": "raw"
+  }
+}

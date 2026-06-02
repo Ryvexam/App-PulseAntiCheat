@@ -1,0 +1,14 @@
+FROM node:22-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+COPY . .
+
+RUN mkdir -p tmp
+
+EXPOSE 3000
+
+CMD ["sh", "-c", "node src/migrate.js && node server.js"]
