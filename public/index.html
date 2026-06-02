@@ -3,18 +3,46 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pulse Audit</title>
+  <title>Pulse Audit — Hesias</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+
+  <div class="scanlines" aria-hidden="true"></div>
+
   <header class="topbar">
-    <div>
-      <p class="eyebrow">Pulse Hesias</p>
-      <h1>Audit surveillant</h1>
+    <div class="topbar-brand">
+      <div class="brand-icon" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <circle cx="14" cy="14" r="12" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/>
+          <circle cx="14" cy="14" r="6" stroke="currentColor" stroke-width="1.5"/>
+          <circle cx="14" cy="14" r="2" fill="currentColor"/>
+          <line x1="14" y1="2" x2="14" y2="8" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="14" y1="20" x2="14" y2="26" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="2" y1="14" x2="8" y2="14" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="20" y1="14" x2="26" y2="14" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <div>
+        <p class="eyebrow">Système de surveillance</p>
+        <h1>PULSE <span>AUDIT</span></h1>
+      </div>
     </div>
+
+    <div class="topbar-pulse" aria-hidden="true">
+      <svg class="pulse-line" viewBox="0 0 400 40" preserveAspectRatio="none">
+        <polyline class="pulse-path" points="0,20 40,20 55,5 65,35 75,8 85,30 95,20 400,20"/>
+      </svg>
+      <div class="pulse-dot"></div>
+    </div>
+
     <div class="auth">
-      <input id="token" type="password" placeholder="Dashboard token">
-      <button id="save-token">Connecter</button>
+      <div class="auth-label">TOKEN</div>
+      <input id="token" type="password" placeholder="••••••••••••••••" autocomplete="off">
+      <button id="save-token">CONNECTER</button>
     </div>
   </header>
 
@@ -24,14 +52,33 @@
     <section class="workspace">
       <aside class="sessions">
         <div class="section-head">
-          <h2>Sessions</h2>
-          <button id="refresh">Actualiser</button>
+          <div class="section-title">
+            <span class="status-dot"></span>
+            <h2>SESSIONS</h2>
+          </div>
+          <button id="refresh" class="btn-ghost">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M10.5 6A4.5 4.5 0 1 1 6 1.5" stroke-linecap="round"/>
+              <polyline points="10.5,1.5 10.5,4.5 7.5,4.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            SYNC
+          </button>
         </div>
         <div id="session-list" class="session-list"></div>
       </aside>
 
       <section class="detail">
-        <div id="detail-empty" class="empty">Sélectionnez une session pour inspecter les preuves.</div>
+        <div id="detail-empty" class="empty">
+          <div class="empty-inner">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3">
+              <circle cx="24" cy="24" r="20" stroke-dasharray="4 3"/>
+              <circle cx="24" cy="24" r="10"/>
+              <circle cx="24" cy="24" r="3" fill="currentColor" stroke="none"/>
+            </svg>
+            <p>Sélectionner une session pour inspecter les preuves</p>
+          </div>
+        </div>
+
         <div id="detail-content" hidden>
           <div class="detail-head">
             <div>
@@ -39,13 +86,24 @@
               <h2 id="detail-student"></h2>
             </div>
             <div class="detail-actions">
-              <button id="ai-agent">Agent IA</button>
-              <button id="export-csv">Exporter CSV</button>
+              <button id="ai-agent" class="btn-threat">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="6" cy="6" r="4.5"/>
+                  <path d="M6 3.5v2.5l1.5 1.5" stroke-linecap="round"/>
+                </svg>
+                AGENT IA
+              </button>
+              <button id="export-csv" class="btn-ghost">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M6 1v7M3 5l3 3 3-3M2 10h8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                CSV
+              </button>
             </div>
           </div>
 
           <section class="intelligence">
-            <div>
+            <div class="intel-verdict">
               <p class="eyebrow">Analyse comportementale</p>
               <h3 id="analysis-verdict"></h3>
             </div>
@@ -54,19 +112,28 @@
 
           <section id="ai-panel" class="ai-panel" hidden>
             <div class="section-head">
-              <h3>Analyse Agent IA</h3>
-              <span id="ai-status"></span>
+              <div class="section-title">
+                <span class="status-dot status-dot--amber"></span>
+                <h3>AGENT IA — ANALYSE</h3>
+              </div>
+              <span id="ai-status" class="ai-status-label"></span>
             </div>
             <div id="ai-result"></div>
           </section>
 
           <div class="detail-grid">
-            <section>
-              <h3>Timeline</h3>
+            <section class="panel">
+              <div class="panel-header">
+                <h3>TIMELINE</h3>
+                <span class="panel-count" id="timeline-count"></span>
+              </div>
               <div id="timeline" class="timeline"></div>
             </section>
-            <section>
-              <h3>Preuves</h3>
+            <section class="panel">
+              <div class="panel-header">
+                <h3>PREUVES</h3>
+                <span class="panel-count" id="evidence-count"></span>
+              </div>
               <div id="evidence" class="evidence"></div>
             </section>
           </div>
@@ -76,5 +143,10 @@
   </main>
 
   <script src="/app.js"></script>
+  <script>
+    // Patch renderDetail to update counts
+    const _origRenderDetail = window.renderDetail || null;
+    document.addEventListener('DOMContentLoaded', () => {});
+  </script>
 </body>
 </html>
