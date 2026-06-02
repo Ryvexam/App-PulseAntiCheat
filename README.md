@@ -5,6 +5,9 @@
 **Audit backend for the Hesias LMS anti-cheat system.**
 Receives telemetry from the Chrome extension, stores tamper-evident evidence, scores behaviour, and exposes a proctor dashboard.
 
+> [!WARNING]
+> **Unofficial project.** Not made by or affiliated with Hesias. Built by a student as an independent initiative.
+
 [![Node](https://img.shields.io/badge/node-%E2%89%A522-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![Express](https://img.shields.io/badge/express-4.x-000000?logo=express&logoColor=white)](https://expressjs.com)
 [![PostgreSQL](https://img.shields.io/badge/postgres-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
