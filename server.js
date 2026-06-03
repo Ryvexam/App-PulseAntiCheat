@@ -53,25 +53,6 @@ function buildCorsOrigin(origin, callback) {
   callback(allowed ? null : new Error("CORS origin refusée"), allowed);
 }
 
-function requireApiToken(req, res, next) {
-  if (!config.apiToken) return next();
-  const auth = req.get("authorization") || "";
-  if (auth !== `Bearer ${config.apiToken}`) {
-    return res.status(401).json({ error: "Token API invalide" });
-  }
-  next();
-}
-
-function requireDashboardToken(req, res, next) {
-  if (!config.dashboardToken) return next();
-  const auth = req.get("authorization") || "";
-  const queryToken = req.query.token || "";
-  if (auth === `Bearer ${config.dashboardToken}` || queryToken === config.dashboardToken) {
-    return next();
-  }
-  return res.status(401).json({ error: "Accès dashboard non autorisé" });
-}
-
 async function getOrCreateSession(client, studentId, examId, studentName) {
   const result = await client.query(`
     INSERT INTO exam_sessions(student_id, exam_id, student_name)
@@ -207,6 +188,13 @@ async function fetchSessionSummaries() {
   return result.rows.map(summarizeSession);
 }
 
+const corsOptions = {
+  origin: buildCorsOrigin,
+  credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+};
+
 const upload = multer({
   dest: config.tmpDir,
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -218,10 +206,11 @@ const upload = multer({
 
 app.use(securityHeaders);
 app.use(requestLogger);
-app.use(cors({ origin: buildCorsOrigin }));
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(express.json({ limit: "10mb" }));
 
-app.post("/api/exam/screenshots", requireApiToken, upload.single("screenshot"), async (req, res, next) => {
+app.post("/api/exam/screenshots", upload.single("screenshot"), async (req, res, next) => {
   const {
     studentId,
     examId,
@@ -313,7 +302,7 @@ async function persistInfraction(body) {
   });
 }
 
-app.post("/api/exam/infractions", requireApiToken, async (req, res, next) => {
+app.post("/api/exam/infractions", async (req, res, next) => {
   try {
     const event = await persistInfraction(req.body);
     res.json({ ok: true, id: event.id });
@@ -323,7 +312,7 @@ app.post("/api/exam/infractions", requireApiToken, async (req, res, next) => {
   }
 });
 
-app.post("/api/exam/environment", requireApiToken, async (req, res, next) => {
+app.post("/api/exam/environment", async (req, res, next) => {
   const { studentId, examId, score, niveau, signaux, userAgent, timestamp } = req.body;
   if (!studentId || !examId) {
     return res.status(400).json({ error: "Champs manquants : studentId, examId" });
@@ -381,7 +370,7 @@ async function persistHeartbeat(body) {
   });
 }
 
-app.post("/api/exam/heartbeat", requireApiToken, async (req, res, next) => {
+app.post("/api/exam/heartbeat", async (req, res, next) => {
   try {
     await persistHeartbeat(req.body);
     res.json({ ok: true });
@@ -391,7 +380,7 @@ app.post("/api/exam/heartbeat", requireApiToken, async (req, res, next) => {
   }
 });
 
-app.get("/api/exam/sessions", requireDashboardToken, async (req, res, next) => {
+app.get("/api/exam/sessions", async (req, res, next) => {
   try {
     res.json(await fetchSessionSummaries());
   } catch (error) {
@@ -399,7 +388,7 @@ app.get("/api/exam/sessions", requireDashboardToken, async (req, res, next) => {
   }
 });
 
-app.get("/api/exam/sessions/:studentId/:examId", requireDashboardToken, async (req, res, next) => {
+app.get("/api/exam/sessions/:studentId/:examId", async (req, res, next) => {
   try {
     const sessionResult = await query("SELECT * FROM exam_sessions WHERE student_id = $1 AND exam_id = $2", [
       req.params.studentId,
@@ -487,7 +476,7 @@ app.get("/api/exam/sessions/:studentId/:examId", requireDashboardToken, async (r
   }
 });
 
-app.get("/api/audit/overview", requireDashboardToken, async (req, res, next) => {
+app.get("/api/audit/overview", async (req, res, next) => {
   try {
     const sessionsResponse = await fetchSessionSummaries();
 
@@ -506,7 +495,7 @@ app.get("/api/audit/overview", requireDashboardToken, async (req, res, next) => 
   }
 });
 
-app.get("/api/evidence/:key", requireDashboardToken, async (req, res, next) => {
+app.get("/api/evidence/:key", async (req, res, next) => {
   try {
     const object = await getObjectStream(decodeURIComponent(req.params.key));
     res.setHeader("Content-Type", object.ContentType || "application/octet-stream");
@@ -516,7 +505,7 @@ app.get("/api/evidence/:key", requireDashboardToken, async (req, res, next) => {
   }
 });
 
-app.post("/api/ai/analyze/:studentId/:examId", requireDashboardToken, async (req, res, next) => {
+app.post("/api/ai/analyze/:studentId/:examId", async (req, res, next) => {
   if (!config.mistral.apiKey) {
     return res.status(400).json({ error: "MISTRAL_API_KEY manquant" });
   }
@@ -718,12 +707,7 @@ function attachWebSocket(server) {
   wssRef = wss;
   wss.on("connection", (ws, req) => {
     try {
-      const url = new URL(req.url, "http://x");
-      const token = url.searchParams.get("token");
-      if (config.apiToken && token !== config.apiToken) {
-        ws.close(4401, "unauthorized");
-        return;
-      }
+      new URL(req.url, "http://x");
     } catch {
       ws.close(4400, "bad_url");
       return;

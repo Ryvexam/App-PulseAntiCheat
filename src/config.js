@@ -3,9 +3,7 @@ const path = require("path");
 const config = {
   env: process.env.NODE_ENV || "development",
   port: Number(process.env.PORT || 3000),
-  apiToken: process.env.PULSE_API_TOKEN || "",
-  dashboardToken: process.env.PULSE_DASHBOARD_TOKEN || process.env.PULSE_API_TOKEN || "",
-  corsOrigins: (process.env.CORS_ORIGINS || "https://pulse.hesias.fr,https://*.hesias.fr,https://*.hesias.net,http://localhost:3000")
+  corsOrigins: (process.env.CORS_ORIGINS || "https://pulse.hesias.fr,https://*.hesias.fr,https://*.hesias.net,chrome-extension://*,http://localhost:3000")
     .split(",")
     .map(origin => origin.trim())
     .filter(Boolean),

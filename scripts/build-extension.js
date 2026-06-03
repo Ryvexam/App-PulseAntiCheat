@@ -17,7 +17,6 @@ const OUT = path.join(ROOT, "dist", "extension");
 const WASM_SRC = path.join(ROOT, "assembly", "build", "core.wasm");
 
 const BACKEND_URL = (process.env.PULSE_BACKEND_URL || "http://localhost:3000").replace(/\/+$/, "");
-const API_TOKEN = process.env.PULSE_API_TOKEN || "";
 const EXAM_ORIGINS = (process.env.PULSE_EXAM_ORIGINS || "https://*.hesias.fr/*,https://*.hesias.net/*")
   .split(",").map(s => s.trim()).filter(Boolean);
 const WHITELIST = (process.env.PULSE_WHITELIST_URLS || "")
@@ -45,7 +44,6 @@ function configBanner() {
   return [
     "// ─── Injected at build time (scripts/build-extension.js) ───",
     `const PULSE_BACKEND_URL = ${JSON.stringify(BACKEND_URL)};`,
-    `const PULSE_API_TOKEN = ${JSON.stringify(API_TOKEN)};`,
     `const PULSE_EXAM_ORIGINS = ${JSON.stringify(EXAM_ORIGINS)};`,
     "",
     ""
@@ -166,10 +164,6 @@ function copyWasm() {
 function main() {
   console.log(`[build-extension] source=${displayPath(SRC)}`);
   console.log(`[build-extension] backend=${BACKEND_URL} origins=${EXAM_ORIGINS.join(",")}`);
-  if (API_TOKEN) {
-    console.log("[build-extension] PULSE_API_TOKEN baked into bundle (extension needs no setup).");
-    console.warn("[build-extension] note: a baked token is extractable from the bundle — keep the dashboard token separate and secret.");
-  }
   clean();
   for (const entry of JS_ENTRIES) concatEntry(entry);
   for (const f of COPY_FILES) {
