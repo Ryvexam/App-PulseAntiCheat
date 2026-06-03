@@ -8,21 +8,13 @@
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+const { root: ROOT, loadDotEnv, resolveExtensionSource, displayPath } = require("./extension-paths");
 
-const ROOT = path.resolve(__dirname, "..");
-const SRC = path.join(ROOT, "extension-pulse");
+loadDotEnv();
+
+const SRC = resolveExtensionSource();
 const OUT = path.join(ROOT, "dist", "extension");
 const WASM_SRC = path.join(ROOT, "assembly", "build", "core.wasm");
-
-function loadDotEnv() {
-  const envPath = path.join(ROOT, ".env");
-  if (!fs.existsSync(envPath)) return;
-  for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
-    const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
-    if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2];
-  }
-}
-loadDotEnv();
 
 const BACKEND_URL = (process.env.PULSE_BACKEND_URL || "http://localhost:3000").replace(/\/+$/, "");
 const API_TOKEN = process.env.PULSE_API_TOKEN || "";
@@ -172,6 +164,7 @@ function copyWasm() {
 }
 
 function main() {
+  console.log(`[build-extension] source=${displayPath(SRC)}`);
   console.log(`[build-extension] backend=${BACKEND_URL} origins=${EXAM_ORIGINS.join(",")}`);
   if (API_TOKEN) {
     console.log("[build-extension] PULSE_API_TOKEN baked into bundle (extension needs no setup).");

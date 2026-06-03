@@ -51,8 +51,9 @@ function securityHeaders(req, res, next) {
   res.setHeader("Cross-Origin-Resource-Policy", "same-site");
   res.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; " +
-    "script-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'"
+    "default-src 'self'; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self'; " +
+    "connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'"
   );
   if (config.env === "production") {
     res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");

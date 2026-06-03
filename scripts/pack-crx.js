@@ -5,8 +5,10 @@ const fs = require("fs");
 const { execSync } = require("child_process");
 const crypto = require("crypto");
 const crx3 = require("crx3");
+const { root: ROOT, loadDotEnv } = require("./extension-paths");
 
-const ROOT = path.resolve(__dirname, "..");
+loadDotEnv();
+
 const EXT_DIR = path.join(ROOT, "dist", "extension");
 const RELEASES = path.join(ROOT, "releases");
 const KEY_PATH = path.join(ROOT, "extension.pem");

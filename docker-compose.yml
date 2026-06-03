@@ -2,7 +2,7 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "${PULSE_APP_HOST_PORT:-3000}:3000"
     env_file:
       - .env
     depends_on:
@@ -40,10 +40,10 @@ services:
     image: dxflrs/garage:v1.1.0
     command: /garage server
     ports:
-      - "3900:3900"
-      - "3901:3901"
-      - "3902:3902"
-      - "3903:3903"
+      - "${GARAGE_S3_HOST_PORT:-3900}:3900"
+      - "${GARAGE_RPC_HOST_PORT:-3901}:3901"
+      - "${GARAGE_WEB_HOST_PORT:-3902}:3902"
+      - "${GARAGE_ADMIN_HOST_PORT:-3903}:3903"
     volumes:
       - garage-data:/var/lib/garage
       - ./garage.toml:/etc/garage.toml:ro

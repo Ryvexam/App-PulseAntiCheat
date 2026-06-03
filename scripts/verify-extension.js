@@ -1,23 +1,21 @@
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
+const { root, resolveExtensionSource, displayPath } = require("./extension-paths");
 
-const root = path.resolve(__dirname, "..");
-const extensionDir = path.join(root, "extension-pulse");
+const extensionDir = resolveExtensionSource();
 
-function readJson(relativePath) {
-  const fullPath = path.join(root, relativePath);
+function readJson(fullPath) {
   try {
     return JSON.parse(fs.readFileSync(fullPath, "utf8"));
   } catch (error) {
-    throw new Error(`${relativePath}: JSON invalide (${error.message})`);
+    throw new Error(`${displayPath(fullPath)}: JSON invalide (${error.message})`);
   }
 }
 
-function assertFile(relativePath) {
-  const fullPath = path.join(root, relativePath);
+function assertFile(fullPath) {
   if (!fs.existsSync(fullPath)) {
-    throw new Error(`${relativePath}: fichier manquant`);
+    throw new Error(`${displayPath(fullPath)}: fichier manquant`);
   }
 }
 
@@ -29,7 +27,9 @@ function listJsFiles(dir) {
   });
 }
 
-const manifest = readJson("extension-pulse/manifest.json");
+console.log(`Checking extension source: ${displayPath(extensionDir)}`);
+
+const manifest = readJson(path.join(extensionDir, "manifest.json"));
 
 if (manifest.manifest_version !== 3) {
   throw new Error("manifest.json: manifest_version doit valoir 3");
@@ -41,12 +41,13 @@ for (const file of [
   manifest.action?.default_popup,
   ...Object.values(manifest.icons || {})
 ].filter(Boolean)) {
-  assertFile(path.join("extension-pulse", file));
+  assertFile(path.join(extensionDir, file));
 }
 
 for (const resource of manifest.declarative_net_request?.rule_resources || []) {
-  assertFile(path.join("extension-pulse", resource.path));
-  readJson(path.join("extension-pulse", resource.path));
+  const resourcePath = path.join(extensionDir, resource.path);
+  assertFile(resourcePath);
+  readJson(resourcePath);
 }
 
 for (const jsFile of listJsFiles(extensionDir)) {

@@ -69,6 +69,28 @@ function analyzeBehavior({ session, events = [], screenshots = [], heartbeats = 
     );
   }
 
+  const clipboardEvents = byType.copier_coller_detecte || 0;
+  if (clipboardEvents > 0) {
+    add(
+      "clipboard_usage",
+      "Copier/coller détecté",
+      90,
+      `${clipboardEvents} séquence(s) copier/coller pendant le QCM`,
+      "Inspecter les captures autour de l'événement et vérifier si le contenu provenait d'une source externe."
+    );
+  }
+
+  const keyboardEvents = byType.clavier_detecte || 0;
+  if (keyboardEvents > 0) {
+    add(
+      "keyboard_usage",
+      "Utilisation du clavier",
+      Math.min(80, 45 + keyboardEvents * 8),
+      `${keyboardEvents} séquence(s) clavier détectée(s)`,
+      "Un QCM attendu au clic ne devrait généralement pas nécessiter de saisie clavier."
+    );
+  }
+
   const windowResizes = byType.fenetre_redimensionnee || 0;
   if (windowResizes > 0) {
     add(

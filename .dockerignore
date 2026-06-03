@@ -1,0 +1,17 @@
+.git
+.env
+.env.*
+garage.toml
+extension.pem
+*.pem
+
+node_modules
+npm-debug.log*
+*.log
+
+dist
+assembly/build
+tmp
+releases
+
+.DS_Store

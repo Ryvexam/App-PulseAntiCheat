@@ -371,19 +371,98 @@ main {
   flex-direction: column;
   overflow-y: auto;
   flex: 1;
+  gap: 10px;
+  padding: 10px;
 }
 
 .session-list::-webkit-scrollbar { width: 4px; }
 .session-list::-webkit-scrollbar-track { background: var(--surface); }
 .session-list::-webkit-scrollbar-thumb { background: var(--border-2); }
 
-/* ─── Session items ──────────────────────────────────────────────────── */
+/* ─── Exam groups + session items ────────────────────────────────────── */
+.exam-group {
+  border: 1px solid var(--border);
+  background: #10141d;
+}
+
+.exam-group.active {
+  border-color: rgba(240, 168, 48, 0.45);
+}
+
+.exam-group-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 12px 8px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0));
+}
+
+.exam-group-label {
+  display: block;
+  margin-bottom: 4px;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--amber);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.exam-group h3 {
+  color: var(--text);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  overflow-wrap: anywhere;
+}
+
+.exam-risk {
+  min-width: 42px;
+  text-align: right;
+  font-family: var(--mono);
+  color: var(--amber);
+}
+
+.exam-risk span {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.exam-risk small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.exam-group-meta {
+  display: grid;
+  gap: 3px;
+  padding: 0 12px 10px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.exam-group-meta time {
+  opacity: 0.72;
+}
+
+.exam-students {
+  border-top: 1px solid var(--border);
+}
+
 .session {
   text-align: left;
   border: 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(36, 42, 58, 0.72);
   background: transparent;
-  padding: 12px 16px;
+  padding: 10px 12px 10px 14px;
   width: 100%;
   position: relative;
   cursor: pointer;
@@ -399,6 +478,8 @@ main {
   background: transparent;
   transition: background 0.15s;
 }
+
+.session:last-child { border-bottom: 0; }
 
 .session:hover { background: rgba(255,255,255,0.02); }
 .session:hover::before { background: var(--border-2); }
@@ -819,13 +900,13 @@ main {
 .timeline::-webkit-scrollbar-thumb { background: var(--border-2); }
 
 .event {
-  padding: 6px 10px;
+  padding: 9px 10px;
   border-left: 2px solid var(--border-2);
   background: rgba(255,255,255,0.01);
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 4px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px 10px;
+  align-items: start;
 }
 
 .event.infraction {
@@ -842,15 +923,70 @@ main {
   margin-bottom: 1px;
 }
 
+.event-main {
+  min-width: 0;
+}
+
 .event strong {
-  font-size: 11px;
+  display: block;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text);
+  line-height: 1.25;
 }
 
 .event.infraction strong { color: #ff8080; }
 
-.event span { font-size: 10px; color: var(--muted); }
+.event p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.event-severity {
+  align-self: start;
+  border: 1px solid var(--border);
+  padding: 2px 7px;
+  font-size: 9px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.event-severity.severity-info {
+  color: var(--muted);
+  border-color: var(--border);
+}
+
+.event-severity.severity-low {
+  color: #8fc98f;
+  border-color: rgba(143, 201, 143, 0.4);
+}
+
+.event-severity.severity-medium {
+  color: var(--amber);
+  border-color: rgba(221, 164, 72, 0.45);
+}
+
+.event-severity.severity-warning,
+.event-severity.severity-high {
+  color: #ff9a6b;
+  border-color: rgba(255, 154, 107, 0.45);
+}
+
+.event-severity.severity-critical {
+  color: #ff8080;
+  border-color: rgba(255, 128, 128, 0.5);
+}
+
+.event-code {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 9px;
+  opacity: 0.62;
+}
 
 /* ─── Evidence grid ──────────────────────────────────────────────────── */
 .evidence {

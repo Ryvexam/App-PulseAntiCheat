@@ -10,7 +10,11 @@ NODE_ID="$($GARAGE node id -q | cut -d'@' -f1)"
 $GARAGE layout assign -z dc1 -c 1G "$NODE_ID" || true
 $GARAGE layout apply --version 1 || true
 $GARAGE bucket create "$BUCKET" || true
-$GARAGE key import --yes -n "$KEY_NAME" "$KEY_ID" "$SECRET" || true
+if $GARAGE key import --yes -n "$KEY_NAME" "$KEY_ID" "$SECRET" >/dev/null; then
+  echo "Garage key ready: $KEY_NAME"
+else
+  echo "Garage key already exists or import skipped: $KEY_NAME"
+fi
 $GARAGE bucket allow --read --write --owner "$BUCKET" --key "$KEY_NAME" || true
 
 echo "Garage bucket ready: $BUCKET"

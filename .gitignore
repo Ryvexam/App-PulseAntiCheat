@@ -1,6 +1,14 @@
 node_modules/
 .env
+.env.*
+!.env.example
+garage.toml
+extension.pem
+*.pem
 *.log
 dist/
+assembly/build/
 tmp/
-garage.toml
+releases/*.crx
+releases/updates.xml
+.DS_Store

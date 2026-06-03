@@ -23,6 +23,142 @@ function fmt(value) {
   return new Date(value).toLocaleString("fr-FR");
 }
 
+const EVENT_COPY = {
+  input_events: {
+    label: "Interaction sur le QCM",
+    description: "Clic, changement de selection ou interaction normale avec la page."
+  },
+  clavier_detecte: {
+    label: "Utilisation du clavier",
+    description: "Une touche a ete utilisee alors que ce QCM est attendu principalement au clic."
+  },
+  copier_coller_detecte: {
+    label: "Copier/coller detecte",
+    description: "Une action copier, couper ou coller a ete detectee pendant l'examen."
+  },
+  fenetre_redimensionnee: {
+    label: "Fenetre redimensionnee",
+    description: "La taille de la fenetre d'examen a change."
+  },
+  dom_tamper: {
+    label: "Modification de la page detectee",
+    description: "Un changement inhabituel a ete detecte dans la page d'examen."
+  },
+  window_blur: {
+    label: "Fenetre d'examen quittee",
+    description: "La fenetre d'examen n'etait plus au premier plan."
+  },
+  perte_focus_fenetre: {
+    label: "Perte de focus",
+    description: "L'eleve a clique ou bascule en dehors de la fenetre d'examen."
+  },
+  tab_hidden: {
+    label: "Onglet d'examen masque",
+    description: "L'onglet d'examen a ete masque, souvent apres un changement d'onglet ou d'application."
+  },
+  examen_quitte: {
+    label: "Sortie de l'examen",
+    description: "La page d'examen a ete quittee ou la session s'est interrompue."
+  },
+  heartbeat: {
+    label: "Extension active",
+    description: "Signal regulier indiquant que l'extension fonctionne toujours."
+  },
+  changement_onglet: {
+    label: "Changement d'onglet",
+    description: "L'eleve a bascule vers un autre onglet."
+  },
+  fullscreen_exit: {
+    label: "Sortie du plein ecran",
+    description: "Le mode plein ecran obligatoire n'etait plus actif."
+  },
+  fullscreen_api_exit: {
+    label: "Plein ecran desactive",
+    description: "Le navigateur a signale une sortie du mode plein ecran."
+  },
+  faux_fullscreen_exit: {
+    label: "Faux plein ecran detecte",
+    description: "La fenetre ne correspondait pas a un vrai plein ecran."
+  },
+  extension_activee: {
+    label: "Extension non autorisee active",
+    description: "Une autre extension Chrome etait active pendant l'examen."
+  },
+  extensions_non_autorisees: {
+    label: "Extensions non autorisees",
+    description: "Des extensions Chrome doivent etre desactivees avant de continuer."
+  },
+  multi_ecran: {
+    label: "Plusieurs ecrans detectes",
+    description: "L'environnement indique l'utilisation de plusieurs affichages."
+  },
+  ecran_verrouille: {
+    label: "Ecran verrouille",
+    description: "L'ordinateur semble avoir ete verrouille pendant l'examen."
+  },
+  vm_detectee: {
+    label: "Environnement virtuel detecte",
+    description: "L'examen semble lance dans une machine virtuelle ou un environnement suspect."
+  },
+  requete_bloquee: {
+    label: "Site bloque",
+    description: "Une tentative d'acces a un site non autorise a ete bloquee."
+  },
+  requete_ia_bloquee: {
+    label: "Outil d'IA bloque",
+    description: "Une tentative d'acces a un service d'IA a ete bloquee."
+  },
+  screenshot: {
+    label: "Capture enregistree",
+    description: "Une capture d'ecran a ete ajoutee aux preuves."
+  }
+};
+
+function humanizeCode(value) {
+  const label = String(value || "evenement")
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function eventCopy(item) {
+  const type = item.type || item.kind;
+  return EVENT_COPY[type] || {
+    label: humanizeCode(type),
+    description: "Evenement enregistre par l'extension pendant l'examen."
+  };
+}
+
+function severityMeta(item) {
+  const n = Number(item.severity || 0);
+  if (!n || item.type === "heartbeat") {
+    return { label: "Information", className: "severity-info", title: "" };
+  }
+  if (n >= 90) return { label: "Critique", className: "severity-critical", title: `Score technique ${n}/100` };
+  if (n >= 70) return { label: "Tres eleve", className: "severity-high", title: `Score technique ${n}/100` };
+  if (n >= 40) return { label: "Eleve", className: "severity-warning", title: `Score technique ${n}/100` };
+  if (n >= 20) return { label: "Moyen", className: "severity-medium", title: `Score technique ${n}/100` };
+  return { label: "Faible", className: "severity-low", title: `Score technique ${n}/100` };
+}
+
+function renderTimelineEvent(item) {
+  const copy = eventCopy(item);
+  const severity = severityMeta(item);
+  const technicalType = item.type || item.kind || "evenement";
+  return `
+    <div class="event ${item.isInfraction ? "infraction" : ""}">
+      <time>${fmt(item.timestamp)}</time>
+      <div class="event-main">
+        <strong>${escapeHtml(copy.label)}</strong>
+        <p>${escapeHtml(copy.description)}</p>
+      </div>
+      <span class="event-severity ${severity.className}" title="${escapeHtml(severity.title)}">${escapeHtml(severity.label)}</span>
+      <span class="event-code" title="Code technique">${escapeHtml(technicalType)}</span>
+    </div>
+  `;
+}
+
 function renderMetrics(totals) {
   document.getElementById("metrics").innerHTML = [
     ["Sessions", totals.sessions],
@@ -35,18 +171,82 @@ function renderMetrics(totals) {
   `).join("");
 }
 
+function groupSessionsByExam(sessions) {
+  const groups = new Map();
+  for (const session of sessions) {
+    const examId = session.examId || "Examen sans nom";
+    if (!groups.has(examId)) {
+      groups.set(examId, {
+        examId,
+        sessions: [],
+        active: 0,
+        infractions: 0,
+        screenshots: 0,
+        maxRisk: 0,
+        lastSeenAt: null
+      });
+    }
+
+    const group = groups.get(examId);
+    group.sessions.push(session);
+    group.active += session.status === "active" ? 1 : 0;
+    group.infractions += Number(session.infractions || 0);
+    group.screenshots += Number(session.screenshots || 0);
+    group.maxRisk = Math.max(group.maxRisk, Number(session.riskScore || 0));
+    if (!group.lastSeenAt || new Date(session.lastSeenAt) > new Date(group.lastSeenAt)) {
+      group.lastSeenAt = session.lastSeenAt;
+    }
+  }
+  return [...groups.values()];
+}
+
+function pluralize(count, singular, plural) {
+  return `${count} ${count > 1 ? plural : singular}`;
+}
+
 function renderSessions(sessions) {
-  document.getElementById("session-list").innerHTML = sessions.map(session => `
-    <button class="session ${selectedSession?.studentId === session.studentId && selectedSession?.examId === session.examId ? "active" : ""}"
-      data-student="${session.studentId}" data-exam="${session.examId}">
-      <span class="session-title">
-        <span>${escapeHtml(session.studentName || session.studentId)}</span>
-        <span class="risk">${session.riskScore}</span>
-      </span>
-      <span class="session-meta">${session.studentName ? `ID ${escapeHtml(session.studentId)}<br>` : ""}${escapeHtml(session.examId)}<br>${session.infractions} infractions · ${session.screenshots} captures<br>${fmt(session.lastSeenAt)}</span>
-      <span class="verdict">${session.analysis?.verdict || "normal"} · ${session.analysis?.suspicionScore || 0}</span>
-    </button>
-  `).join("");
+  const groups = groupSessionsByExam(sessions);
+  document.getElementById("session-list").innerHTML = groups.map(group => {
+    const isCurrentExam = selectedSession?.examId === group.examId;
+    const groupSummary = [
+      pluralize(group.sessions.length, "eleve", "eleves"),
+      group.active ? `${group.active} active${group.active > 1 ? "s" : ""}` : null,
+      pluralize(group.infractions, "alerte", "alertes"),
+      `${group.screenshots} capture${group.screenshots > 1 ? "s" : ""}`
+    ].filter(Boolean).join(" · ");
+
+    return `
+      <section class="exam-group ${isCurrentExam ? "active" : ""}">
+        <div class="exam-group-head">
+          <div>
+            <span class="exam-group-label">Examen</span>
+            <h3>${escapeHtml(group.examId)}</h3>
+          </div>
+          <div class="exam-risk" title="Risque maximal de cet examen">
+            <span>${group.maxRisk}</span>
+            <small>max</small>
+          </div>
+        </div>
+        <div class="exam-group-meta">
+          <span>${escapeHtml(groupSummary)}</span>
+          <time>${fmt(group.lastSeenAt)}</time>
+        </div>
+        <div class="exam-students">
+          ${group.sessions.map(session => `
+            <button class="session ${selectedSession?.studentId === session.studentId && selectedSession?.examId === session.examId ? "active" : ""}"
+              data-student="${escapeHtml(session.studentId)}" data-exam="${escapeHtml(session.examId)}">
+              <span class="session-title">
+                <span>${escapeHtml(session.studentName || session.studentId)}</span>
+                <span class="risk">${session.riskScore}</span>
+              </span>
+              <span class="session-meta">${session.studentName ? `ID ${escapeHtml(session.studentId)}<br>` : ""}${session.infractions} alerte${session.infractions > 1 ? "s" : ""} · ${session.screenshots} capture${session.screenshots > 1 ? "s" : ""}<br>${fmt(session.lastSeenAt)}</span>
+              <span class="verdict">${session.analysis?.verdict || "normal"} · ${session.analysis?.suspicionScore || 0}</span>
+            </button>
+          `).join("")}
+        </div>
+      </section>
+    `;
+  }).join("");
 
   document.querySelectorAll(".session").forEach(button => {
     button.addEventListener("click", () => loadDetail(button.dataset.student, button.dataset.exam));
@@ -79,13 +279,8 @@ function renderDetail(detail) {
   document.getElementById("timeline").innerHTML = detail.timeline
     .filter(item => item.type !== "screenshot" || item.kind === "evidence")
     .slice(-200)
-    .map(item => `
-      <div class="event ${item.isInfraction ? "infraction" : ""}">
-        <time>${fmt(item.timestamp)}</time>
-        <strong>${item.type || item.kind}</strong>
-        ${item.severity ? `<span> · gravité ${item.severity}</span>` : ""}
-      </div>
-    `).join("");
+    .map(renderTimelineEvent)
+    .join("");
 
   document.getElementById("evidence").innerHTML = detail.screenshots
     .filter(item => item.kind === "evidence")
@@ -226,11 +421,15 @@ async function loadDetail(studentId, examId) {
 
 function exportCsv() {
   if (!currentDetail) return;
-  const rows = [["timestamp", "type", "severity", "details"]];
+  const rows = [["timestamp", "libelle", "type_technique", "impact", "score_technique", "details"]];
   for (const event of currentDetail.timeline) {
+    const copy = eventCopy(event);
+    const severity = severityMeta(event);
     rows.push([
       event.timestamp || "",
+      copy.label,
       event.type || event.kind || "",
+      severity.label,
       event.severity || "",
       JSON.stringify(event.details || event.tabUrl || "")
     ]);

@@ -11,7 +11,9 @@ const INFRACTION_TYPES = new Set([
   "ecran_verrouille",
   "vm_detectee",
   "requete_bloquee",
-  "requete_ia_bloquee"
+  "requete_ia_bloquee",
+  "clavier_detecte",
+  "copier_coller_detecte"
 ]);
 
 function isInfractionType(type) {
@@ -35,6 +37,8 @@ function getSeverity(type) {
     tab_hidden: 35,
     window_blur: 25,
     requete_bloquee: 25,
+    clavier_detecte: 50,
+    copier_coller_detecte: 85,
     input_events: 5
   };
   return scores[type] || (isInfractionType(type) ? 40 : 5);

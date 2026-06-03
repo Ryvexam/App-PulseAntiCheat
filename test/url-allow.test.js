@@ -1,6 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { isAllowedUrl, matchPatternToRegExp } = require("../extension-pulse/url-allow");
+const path = require("path");
+const { resolveExtensionSource } = require("../scripts/extension-paths");
+const extensionDir = resolveExtensionSource();
+const { isAllowedUrl, matchPatternToRegExp } = require(path.join(extensionDir, "url-allow"));
 
 const HESIAS = ["https://*.hesias.fr/*", "https://*.hesias.net/*"];
 
