@@ -34,6 +34,43 @@ function sanitizeKeyPart(value) {
   return String(value || "unknown").replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 80);
 }
 
+function normalizeExtensionInstallType(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function extractExtensionIdentity(body = {}) {
+  return {
+    extensionId: String(body.extensionId || body.id || "").trim(),
+    extensionInstallType: normalizeExtensionInstallType(body.extensionInstallType || body.installType),
+    extensionVersion: String(body.extensionVersion || body.version || "").trim()
+  };
+}
+
+function makeExtensionAuthError(reason = "non_official_extension", details = {}) {
+  const error = new Error("Extension non officielle");
+  error.status = 403;
+  error.reason = reason;
+  error.details = details;
+  return error;
+}
+
+function validateOfficialExtension(body = {}) {
+  if (!config.officialExtensionId) {
+    return { official: true, skipped: true, identity: extractExtensionIdentity(body) };
+  }
+
+  const identity = extractExtensionIdentity(body);
+  if (!identity.extensionId || !identity.extensionInstallType) {
+    throw makeExtensionAuthError("missing_extension_identity", identity);
+  }
+
+  if (identity.extensionId !== config.officialExtensionId || identity.extensionInstallType !== "normal") {
+    throw makeExtensionAuthError("non_official_extension", identity);
+  }
+
+  return { official: true, identity };
+}
+
 async function streamToBuffer(stream) {
   const chunks = [];
   for await (const chunk of stream) chunks.push(Buffer.from(chunk));
@@ -121,6 +158,11 @@ async function fetchSessionSummaries() {
           'tabCount', tab_count,
           'windowCount', window_count,
           'currentUrl', current_url,
+          'extensionId', extension_id,
+          'extensionInstallType', extension_install_type,
+          'extensionVersion', extension_version,
+          'extensionOfficial', extension_official,
+          'extensionVerificationReason', extension_verification_reason,
           'receivedAt', received_at
         ) AS value
       FROM heartbeats
@@ -171,7 +213,12 @@ async function fetchSessionSummaries() {
           'timestamp', hb.received_at,
           'extensionActive', hb.extension_active,
           'sessionActive', hb.session_active,
-          'fullscreen', hb.fullscreen
+          'fullscreen', hb.fullscreen,
+          'extensionId', hb.extension_id,
+          'extensionInstallType', hb.extension_install_type,
+          'extensionVersion', hb.extension_version,
+          'extensionOfficial', hb.extension_official,
+          'extensionVerificationReason', hb.extension_verification_reason
         ) ORDER BY hb.received_at)
         FROM heartbeats hb
         WHERE hb.session_id = s.id
@@ -227,12 +274,12 @@ app.post("/api/exam/screenshots", upload.single("screenshot"), async (req, res, 
     windowId
   } = req.body;
 
-  if (!studentId || !examId || !req.file) {
-    if (req.file) fs.unlinkSync(req.file.path);
-    return res.status(400).json({ error: "Champs manquants : studentId, examId, screenshot" });
-  }
-
   try {
+    validateOfficialExtension(req.body);
+    if (!studentId || !examId || !req.file) {
+      return res.status(400).json({ error: "Champs manquants : studentId, examId, screenshot" });
+    }
+
     const capturedAt = toDate(timestamp);
     const safeStudent = sanitizeKeyPart(studentId);
     const safeExam = sanitizeKeyPart(examId);
@@ -280,6 +327,9 @@ app.post("/api/exam/screenshots", upload.single("screenshot"), async (req, res, 
 
     res.json({ ok: true, id: screenshot.id, objectKey: stored.key, sha256: stored.sha256 });
   } catch (error) {
+    if (error.status === 403) {
+      return res.status(403).json({ error: error.message, reason: error.reason, official: false, extension: error.details || null });
+    }
     next(error);
   } finally {
     if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
@@ -289,6 +339,7 @@ app.post("/api/exam/screenshots", upload.single("screenshot"), async (req, res, 
 async function persistInfraction(body) {
   const { studentId, examId, studentName, type, timestamp, ...details } = body || {};
   if (!studentId || !examId || !type) throw Object.assign(new Error("missing_fields"), { status: 400 });
+  validateOfficialExtension(body);
   return await transaction(async client => {
     const session = await getOrCreateSession(client, studentId, examId, studentName);
     const severity = getSeverity(type);
@@ -308,6 +359,7 @@ app.post("/api/exam/infractions", async (req, res, next) => {
     res.json({ ok: true, id: event.id });
   } catch (error) {
     if (error.status === 400) return res.status(400).json({ error: "Champs manquants : studentId, examId, type" });
+    if (error.status === 403) return res.status(403).json({ error: error.message, reason: error.reason, official: false, extension: error.details || null });
     next(error);
   }
 });
@@ -319,6 +371,7 @@ app.post("/api/exam/environment", async (req, res, next) => {
   }
 
   try {
+    validateOfficialExtension(req.body);
     await transaction(async client => {
       const session = await getOrCreateSession(client, studentId, examId);
       await client.query(`
@@ -331,6 +384,7 @@ app.post("/api/exam/environment", async (req, res, next) => {
     });
     res.json({ ok: true });
   } catch (error) {
+    if (error.status === 403) return res.status(403).json({ error: error.message, reason: error.reason, official: false });
     next(error);
   }
 });
@@ -341,14 +395,17 @@ async function persistHeartbeat(body) {
     lastScreenshotTimestamp, lastUploadStatus, tabCount, windowCount, currentUrl
   } = body || {};
   if (!studentId || !examId) throw Object.assign(new Error("missing_fields"), { status: 400 });
+  const extensionCheck = validateOfficialExtension(body);
   await transaction(async client => {
     const session = await getOrCreateSession(client, studentId, examId, studentName);
     await client.query(`
       INSERT INTO heartbeats(
         session_id, extension_active, session_active, fullscreen, last_screenshot_at,
-        last_upload_status, tab_count, window_count, current_url, received_at
+        last_upload_status, tab_count, window_count, current_url,
+        extension_id, extension_install_type, extension_version, extension_official, extension_verification_reason,
+        received_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
     `, [
       session.id,
       boolFromBody(extensionActive),
@@ -359,6 +416,11 @@ async function persistHeartbeat(body) {
       tabCount ? Number(tabCount) : null,
       windowCount ? Number(windowCount) : null,
       currentUrl || null,
+      extensionCheck.identity.extensionId || null,
+      extensionCheck.identity.extensionInstallType || null,
+      extensionCheck.identity.extensionVersion || null,
+      extensionCheck.official === true,
+      null,
       toDate(timestamp)
     ]);
     await client.query(`
@@ -376,6 +438,7 @@ app.post("/api/exam/heartbeat", async (req, res, next) => {
     res.json({ ok: true });
   } catch (error) {
     if (error.status === 400) return res.status(400).json({ error: "Champs manquants : studentId, examId" });
+    if (error.status === 403) return res.status(403).json({ error: error.message, reason: error.reason, official: false, extension: error.details || null });
     next(error);
   }
 });
@@ -441,7 +504,12 @@ app.get("/api/exam/sessions/:studentId/:examId", async (req, res, next) => {
       lastUploadStatus: row.last_upload_status,
       tabCount: row.tab_count,
       windowCount: row.window_count,
-      currentUrl: row.current_url
+      currentUrl: row.current_url,
+      extensionId: row.extension_id,
+      extensionInstallType: row.extension_install_type,
+      extensionVersion: row.extension_version,
+      extensionOfficial: row.extension_official,
+      extensionVerificationReason: row.extension_verification_reason
     }));
 
     res.json({

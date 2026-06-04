@@ -70,7 +70,7 @@ The GitHub Actions workflow republishes the extension assets on every push to `m
 ./setup.sh -y         # non-interactive (accept generated defaults)
 
 # 2. Start the stack (migrations run automatically)
-docker compose up -d --build
+docker compose up -d
 
 # 3. Verify
 curl http://localhost:3000/health
@@ -106,6 +106,11 @@ Open the proctor dashboard at **http://localhost:3000**. In production, the publ
 > **S3-compatible, not locked to Garage.** Point `S3_*` at AWS S3, Cloudflare R2, Scaleway, etc.
 
 ---
+
+## DockerHub CI
+
+- The workflow `.github/workflows/publish-dockerhub.yml` builds and pushes `ryvexam99/pulse-anticheat:latest` on pushes to `main`.
+- Required GitHub secret: `DOCKERHUB_TOKEN` (a DockerHub access token for the `ryvexam99` account).
 
 ## Security model
 
@@ -156,7 +161,7 @@ npm run test:integration # end-to-end against a running stack (Postgres + S3 rou
 ## Production deployment
 
 1. Run `./setup.sh` — keep `.env` and `garage.toml` private (mode `600`).
-2. `docker compose up -d --build` — migrations run on boot.
+2. `docker compose up -d` — migrations run on boot. The app container now uses `ryvexam99/pulse-anticheat:latest`; with Watchtower enabled it can refresh automatically after each push to `main`.
 3. Terminate **HTTPS** at a reverse proxy.
 4. Persist volumes: `postgres-data`, `garage-data`.
 5. Define an evidence **retention policy** per your institution's data rules.

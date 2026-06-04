@@ -10,6 +10,7 @@ const config = {
   databaseUrl: process.env.DATABASE_URL || "postgres://pulse:pulse@localhost:5432/pulse",
   tmpDir: process.env.UPLOAD_TMP_DIR || path.join(__dirname, "..", "tmp"),
   publicDir: path.join(__dirname, "..", "public"),
+  officialExtensionId: process.env.CWS_ITEM_ID || "",
   s3: {
     endpoint: process.env.S3_ENDPOINT || "http://localhost:9000",
     region: process.env.S3_REGION || "us-east-1",
