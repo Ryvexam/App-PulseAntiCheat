@@ -53,6 +53,13 @@ Four containers via Docker Compose: `app`, `postgres`, `garage`, `garage-init` (
 
 ---
 
+## Downloads
+
+- Hosted CRX: `https://anticheat.ryvexam.fr/releases/pulse-v1.0.0.crx`
+- GitHub release assets: `https://github.com/Ryvexam/App-PulseAntiCheat/releases/tag/extension-latest`
+
+The GitHub Actions workflow republishes the extension assets on every push to `main`.
+
 ## Quick start
 
 **Prerequisites:** Docker + Docker Compose, `openssl`. Node ≥ 22 only needed for running tests on the host.
@@ -63,14 +70,14 @@ Four containers via Docker Compose: `app`, `postgres`, `garage`, `garage-init` (
 ./setup.sh -y         # non-interactive (accept generated defaults)
 
 # 2. Start the stack (migrations run automatically)
-docker compose up -d --build
+docker compose up -d
 
 # 3. Verify
 curl http://localhost:3000/health
 # → {"ok":true,"version":"1.0.0","storage":"postgres+s3","uptime":...}
 ```
 
-Open the proctor dashboard at **http://localhost:3000** and paste your `PULSE_DASHBOARD_TOKEN` (stored in `.env`).
+Open the proctor dashboard at **http://localhost:3000**. In production, the public hostname is protected by Cloudflare Access.
 
 ---
 
@@ -82,8 +89,6 @@ Open the proctor dashboard at **http://localhost:3000** and paste your `PULSE_DA
 |---|---|---|
 | `PORT` | App listen port | `3000` |
 | `NODE_ENV` | `production` enables fail-closed checks + HSTS | `production` |
-| `PULSE_API_TOKEN` | Bearer token the extension sends. **Required in prod.** | — |
-| `PULSE_DASHBOARD_TOKEN` | Token for proctor dashboard (falls back to API token) | — |
 | `CORS_ORIGINS` | Comma-separated allow-list, supports `*` wildcards | `https://pulse.hesias.fr,…` |
 | `DATABASE_URL` | PostgreSQL connection string | `postgres://pulse:pulse@postgres:5432/pulse` |
 | `PG_POOL_SIZE` | Max PG pool connections | `10` |
@@ -102,10 +107,15 @@ Open the proctor dashboard at **http://localhost:3000** and paste your `PULSE_DA
 
 ---
 
+## DockerHub CI
+
+- The workflow `.github/workflows/publish-dockerhub.yml` builds and pushes `ryvexam99/pulse-anticheat:latest` on pushes to `main`.
+- Required GitHub secret: `DOCKERHUB_TOKEN` (a DockerHub access token for the `ryvexam99` account).
+
 ## Security model
 
-- **Fail-closed in production.** Server refuses to start if any token or S3 credential is empty or a known placeholder (`src/security.js`).
-- **Auth on every endpoint.** Ingestion uses `Authorization: Bearer $PULSE_API_TOKEN`; dashboard uses `$PULSE_DASHBOARD_TOKEN`.
+- **Fail-closed in production.** Server refuses to start if any secret or S3 credential is empty or a known placeholder (`src/security.js`).
+- **Cloudflare Access protects the public hostname.** Browser-facing routes are not guarded by app bearer tokens; Access handles the external gate in production.
 - **Hardened headers** — CSP, `X-Content-Type-Options`, `X-Frame-Options: DENY`, HSTS in production.
 - **No leakage** — 5xx errors return a generic message in production.
 - **Behind TLS** — `trust proxy` on; terminate HTTPS at a reverse proxy (Caddy/Nginx/Traefik).
@@ -116,7 +126,7 @@ Open the proctor dashboard at **http://localhost:3000** and paste your `PULSE_DA
 
 ## API reference
 
-### Ingestion — `Authorization: Bearer $PULSE_API_TOKEN`
+### Ingestion
 
 | Method | Route | Body | Purpose |
 |---|---|---|---|
@@ -124,9 +134,9 @@ Open the proctor dashboard at **http://localhost:3000** and paste your `PULSE_DA
 | `POST` | `/api/exam/infractions` | JSON (`studentId`, `examId`, `type`, …) | Record infraction + refresh risk score |
 | `POST` | `/api/exam/environment` | JSON (`score`, `niveau`, `signaux`, …) | VM / environment report |
 | `POST` | `/api/exam/heartbeat` | JSON (`extensionActive`, `fullscreen`, …) | Liveness + session state |
-| `WS` | `/ws/audit?token=…` | `{kind, payload}` | Low-latency transport (HTTP fallback) |
+| `WS` | `/ws/audit` | `{kind, payload}` | Low-latency transport (HTTP fallback) |
 
-### Dashboard — `$PULSE_DASHBOARD_TOKEN` (header or `?token=`)
+### Dashboard
 
 | Method | Route | Purpose |
 |---|---|---|
@@ -151,7 +161,7 @@ npm run test:integration # end-to-end against a running stack (Postgres + S3 rou
 ## Production deployment
 
 1. Run `./setup.sh` — keep `.env` and `garage.toml` private (mode `600`).
-2. `docker compose up -d --build` — migrations run on boot.
+2. `docker compose up -d` — migrations run on boot. The app container now uses `ryvexam99/pulse-anticheat:latest`; with Watchtower enabled it can refresh automatically after each push to `main`.
 3. Terminate **HTTPS** at a reverse proxy.
 4. Persist volumes: `postgres-data`, `garage-data`.
 5. Define an evidence **retention policy** per your institution's data rules.

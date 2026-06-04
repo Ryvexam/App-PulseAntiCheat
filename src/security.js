@@ -17,17 +17,15 @@ function isWeak(value) {
 }
 
 /**
- * Refuse to start an unauthenticated server in production. In development the
- * tokens may be empty (auth disabled) to keep local iteration friction-free.
+ * Refuse to start with placeholder infrastructure secrets in production.
  */
 function assertProductionSecrets() {
   if (config.env !== "production") return;
 
   const problems = [];
-  if (isWeak(config.apiToken)) problems.push("PULSE_API_TOKEN is empty or a default placeholder");
-  if (isWeak(config.dashboardToken)) problems.push("PULSE_DASHBOARD_TOKEN is empty or a default placeholder");
   if (isWeak(config.s3.accessKeyId)) problems.push("S3_ACCESS_KEY_ID is a default placeholder");
   if (isWeak(config.s3.secretAccessKey)) problems.push("S3_SECRET_ACCESS_KEY is a default placeholder");
+  if (isWeak(config.officialExtensionId)) problems.push("CWS_ITEM_ID is empty or a default placeholder");
 
   if (problems.length > 0) {
     const detail = problems.map(p => `  - ${p}`).join("\n");
