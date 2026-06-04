@@ -27,6 +27,8 @@ services:
 
   postgres:
     image: postgres@sha256:16bc17c64a573ef34162af9298258d1aec548232985b33ed7b1eac33ba35c229
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
     environment:
       POSTGRES_USER: pulse
       POSTGRES_PASSWORD: pulse
